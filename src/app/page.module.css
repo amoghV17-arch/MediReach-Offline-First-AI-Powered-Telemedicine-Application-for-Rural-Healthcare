@@ -1,0 +1,164 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px 40px;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Outfit', sans-serif;
+}
+
+.topNav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.brandTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: white;
+}
+
+.blob1 {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.4) 0%, transparent 70%);
+  filter: blur(80px);
+  z-index: 1;
+}
+
+.blob2 {
+  position: absolute;
+  bottom: -10%;
+  right: -10%;
+  width: 40vw;
+  height: 40vw;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+  filter: blur(80px);
+  z-index: 1;
+}
+
+.glassContent {
+  position: relative;
+  z-index: 2;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 40px;
+  padding: 80px 60px;
+  max-width: 900px;
+  text-align: center;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.3);
+}
+
+.logoBadge {
+  display: inline-block;
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 100px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 32px;
+}
+
+.heroTitle {
+  font-size: 72px;
+  font-weight: 800;
+  color: white;
+  line-height: 1.1;
+  margin-bottom: 24px;
+  letter-spacing: -2px;
+}
+
+.heroTitle span {
+  background: linear-gradient(135deg, #60a5fa, #c084fc);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroSub {
+  font-size: 18px;
+  color: #94a3b8;
+  max-width: 600px;
+  margin: 0 auto 48px;
+  line-height: 1.6;
+}
+
+.ctaGroup {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 64px;
+}
+
+.primaryCta {
+  padding: 18px 36px;
+  background: white;
+  color: #0f172a;
+  border-radius: 18px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.primaryCta:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 20px 40px rgba(255, 255, 255, 0.2);
+}
+
+.secondaryCta {
+  padding: 18px 36px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.secondaryCta:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.featureGrid {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  color: #cbd5e0;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.featIcon {
+  font-size: 20px;
+}
+
+@media (max-width: 768px) {
+  .heroTitle { font-size: 48px; }
+  .ctaGroup { flex-direction: column; }
+  .featureGrid { flex-direction: column; gap: 16px; }
+  .glassContent { padding: 40px 20px; }
+}

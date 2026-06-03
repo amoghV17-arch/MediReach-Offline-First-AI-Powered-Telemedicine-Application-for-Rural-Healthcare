@@ -1,0 +1,351 @@
+.page {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-gradient);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Outfit', sans-serif;
+  overflow: hidden;
+}
+
+/* ── Doctor Video Area ── */
+.doctorVideo {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, #111827, #070a13);
+}
+
+.doctorVideoInner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Connecting State ── */
+.connectingOverlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+}
+
+.connectingRing {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  animation: expandRing 1.5s ease-out infinite;
+}
+@keyframes expandRing {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.doctorAvatarLg {
+  font-size: 80px;
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.08));
+  border-radius: 50%;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  position: relative;
+  z-index: 1;
+  animation: avatarPulse 2s ease-in-out infinite;
+}
+@keyframes avatarPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.3); }
+  50%      { box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); }
+}
+
+.connectingText {
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  margin-top: 8px;
+  min-width: 240px;
+  text-align: center;
+}
+
+.connectingSub {
+  font-size: 14px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+/* ── Connected State ── */
+.connectedDoctor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.doctorAvatarConn {
+  font-size: 110px;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.12), rgba(139, 92, 246, 0.06));
+  border-radius: 50%;
+  border: 2px solid rgba(59, 130, 246, 0.25);
+}
+
+.connectedName {
+  font-size: 22px;
+  font-weight: 800;
+  color: white;
+  margin-top: 12px;
+}
+
+.connectedSpec {
+  font-size: 14px;
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+/* Audio wave animation */
+.audioWave {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 30px;
+  margin-top: 12px;
+}
+
+.wavebar {
+  width: 5px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+  animation: wave 0.9s ease-in-out infinite alternate;
+  min-height: 4px;
+}
+
+@keyframes wave {
+  0%   { height: 4px; }
+  100% { height: 28px; }
+}
+
+/* ── Ended State ── */
+.endedOverlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  animation: fadeIn 0.4s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.endedIcon { font-size: 64px; filter: grayscale(1); }
+.endedTitle { font-size: 24px; font-weight: 800; color: white; }
+.endedDuration { font-size: 16px; color: #94a3b8; }
+.endedRedirect { font-size: 13px; color: #64748b; margin-top: 8px; }
+
+/* ── Top Overlay ── */
+.topOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: linear-gradient(180deg, rgba(11,15,25,0.85) 0%, transparent 100%);
+  z-index: 10;
+}
+
+.closeCallBtn {
+  color: rgba(255,255,255,0.6);
+  text-decoration: none;
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  transition: all 0.2s;
+}
+.closeCallBtn:hover { background: rgba(255,255,255,0.2); color: white; }
+
+.callInfo { text-align: center; }
+.callInfoName { font-size: 16px; font-weight: 700; color: white; }
+.callTimer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+.liveIndicator {
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.callConnecting { font-size: 13px; color: #94a3b8; margin-top: 4px; min-width: 120px; text-align: center; }
+
+.encryptedBadge {
+  font-size: 11px;
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 20px;
+  padding: 4px 10px;
+}
+
+/* ── Self View PiP ── */
+.selfView {
+  position: absolute;
+  bottom: 7rem;
+  right: 1.5rem;
+  width: 100px;
+  height: 130px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid rgba(255,255,255,0.15);
+  background: #1e293b;
+  z-index: 20;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.selfViewPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+}
+
+.selfAvatar {
+  font-size: 40px;
+}
+
+.selfCamOff {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+  gap: 4px;
+  font-size: 28px;
+  color: #475569;
+}
+.selfCamOffLabel { font-size: 10px; color: #475569; }
+
+.selfLabel {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  background: rgba(0,0,0,0.4);
+  padding: 2px 0;
+}
+
+/* ── Controls ── */
+.controls {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  z-index: 30;
+  background: rgba(11, 15, 25, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 60px;
+  padding: 12px 32px;
+}
+
+.controlBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.06);
+  color: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 64px;
+}
+.controlBtn:hover { background: rgba(255,255,255,0.12); }
+.controlActive {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.controlIcon { font-size: 20px; }
+.controlLabel { font-size: 10px; color: #94a3b8; }
+
+.endCallBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 22px;
+  border-radius: 60px;
+  border: none;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 72px;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+}
+.endCallBtn:hover { opacity: 0.9; transform: scale(1.05); }
+.endCallIcon { font-size: 24px; }
+
+/* ── Bottom Bar ── */
+.bottomBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px;
+  background: linear-gradient(0deg, rgba(11,15,25,0.8) 0%, transparent 100%);
+  z-index: 5;
+}
+.bottomChip {
+  font-size: 11px;
+  color: #94a3b8;
+  background: rgba(255,255,255,0.06);
+  border-radius: 20px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.reportSharedChip {
+  color: #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.1) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+}
