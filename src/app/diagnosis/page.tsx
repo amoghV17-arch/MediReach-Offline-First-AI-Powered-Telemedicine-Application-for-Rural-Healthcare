@@ -251,8 +251,9 @@ export default function SymptomInputPage() {
       router.push(`/diagnosis/results?id=${resultId}`);
 
     } catch (err) {
-      console.error(err);
-      setError(translate('errorMessage', lang));
+      console.error('Diagnosis submission failed:', err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setError(`Error: ${errMsg}`);
       setLoading(false);
       setLoadingStep('');
     }

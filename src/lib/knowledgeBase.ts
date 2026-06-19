@@ -619,10 +619,15 @@ export async function analyzeSymptoms(
 
   // Try IndexedDB first (500+ diseases), fall back to static array
   let entries: DiseaseEntry[];
-  const dbCount = await db.diseases.count();
-  if (dbCount > 0) {
-    entries = await db.diseases.toArray();
-  } else {
+  try {
+    const dbCount = await db.diseases.count();
+    if (dbCount > 0) {
+      entries = await db.diseases.toArray();
+    } else {
+      entries = KNOWLEDGE_BASE;
+    }
+  } catch (err) {
+    console.warn('Offline DB read failed, falling back to static knowledge base:', err);
     entries = KNOWLEDGE_BASE;
   }
 

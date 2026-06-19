@@ -61,7 +61,13 @@ export async function runOfflineDiagnosis(
   // Dynamically import to avoid bundling issues
   const { analyzeSymptoms, checkForEscalation } = await import('./knowledgeBase');
 
-  const matches = await analyzeSymptoms(description, bodyParts, severity);
+  let matches;
+  try {
+    matches = await analyzeSymptoms(description, bodyParts, severity);
+  } catch (err) {
+    console.error('analyzeSymptoms failed:', err);
+    matches = [];
+  }
 
   // Generate offline image analysis statement
   let offlineImageAnalysis = 'No medical images uploaded for analysis.';
