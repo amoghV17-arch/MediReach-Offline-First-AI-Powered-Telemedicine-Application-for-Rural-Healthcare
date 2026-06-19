@@ -16,6 +16,7 @@ export interface DiseaseEntry {
   specialistReason: string;
   warningFlags: string[]; // If any of these appear in description, escalate severity
   seekEmergencyIf: string[];
+  catalogVersion?: number; // Optional tracking version for OTA updates
 }
 
 export const KNOWLEDGE_BASE: DiseaseEntry[] = [
@@ -604,17 +605,28 @@ export const KNOWLEDGE_BASE: DiseaseEntry[] = [
 ];
 
 /**
- * Analyzes user symptoms against the knowledge base.
+ * Analyzes user symptoms against the IndexedDB disease catalog.
+ * Falls back to the static KNOWLEDGE_BASE if the database is empty.
  * Returns a ranked list of matching conditions.
  */
-export function analyzeSymptoms(
+export async function analyzeSymptoms(
   description: string,
   bodyParts: string[],
   userSeverity: string
-): DiseaseEntry[] {
+): Promise<DiseaseEntry[]> {
+  const { db } = await import('./db');
   const lowerDesc = description.toLowerCase();
 
-  const scored = KNOWLEDGE_BASE.map(entry => {
+  // Try IndexedDB first (500+ diseases), fall back to static array
+  let entries: DiseaseEntry[];
+  const dbCount = await db.diseases.count();
+  if (dbCount > 0) {
+    entries = await db.diseases.toArray();
+  } else {
+    entries = KNOWLEDGE_BASE;
+  }
+
+  const scored = entries.map(entry => {
     let score = 0;
 
     // Keyword match in description
@@ -659,3 +671,4 @@ export function checkForEscalation(
   }
   return { escalated: false, reason: '' };
 }
+

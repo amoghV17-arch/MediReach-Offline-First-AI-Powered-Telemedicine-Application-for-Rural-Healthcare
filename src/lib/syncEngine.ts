@@ -57,12 +57,23 @@ export async function syncToCloud(userId: number): Promise<SyncResult> {
       ...appointments.map(a => a.id !== undefined ? db.appointments.update(a.id, { synced: true }) : Promise.resolve()),
     ]);
 
+    // Also sync the offline disease catalog OTA in background
+    let diseasesUpdated = 0;
+    try {
+      const catResult = await syncDiseaseCatalog();
+      if (catResult.success) {
+        diseasesUpdated = catResult.updated;
+      }
+    } catch (catErr) {
+      console.error('[SyncEngine] Disease catalog sync failed in background:', catErr);
+    }
+
     // Save a sync_complete notification
     await db.notifications.add({
       userId,
       type: 'sync_complete',
       title: '☁️ Data Synced',
-      body: `${symptomLogs.length} logs, ${appointments.length} appointments synced to cloud.`,
+      body: `${symptomLogs.length} logs, ${appointments.length} appointments synced. ${diseasesUpdated > 0 ? `Updated ${diseasesUpdated} diseases in catalog.` : 'Disease catalog up-to-date.'}`,
       scheduledAt: new Date().toISOString(),
       read: false,
     });
@@ -82,6 +93,57 @@ export async function syncToCloud(userId: number): Promise<SyncResult> {
       success: false,
       synced: { symptomLogs: 0, medicalReports: 0, diagnosisResults: 0, appointments: 0 },
       error: err instanceof Error ? err.message : 'Unknown sync error',
+    };
+  }
+}
+
+/**
+ * Syncs the offline disease catalog from the server to Dexie.
+ * Fetches the latest catalog from /api/diseases and upserts new/updated records.
+ */
+export async function syncDiseaseCatalog(): Promise<{ success: boolean; updated: number; error?: string }> {
+  try {
+    const res = await fetch('/api/diseases');
+    if (!res.ok) throw new Error('Failed to fetch disease catalog');
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.diseases)) {
+      throw new Error('Invalid catalog data format');
+    }
+
+    const localDiseases = await db.diseases.toArray();
+    const localMap = new Map(localDiseases.map(d => [d.name.toLowerCase(), d]));
+    
+    let updatedCount = 0;
+    const toAdd: any[] = [];
+    const toUpdate: { id: number; data: any }[] = [];
+
+    for (const disease of data.diseases) {
+      const nameLower = disease.name.toLowerCase();
+      const local = localMap.get(nameLower);
+      if (!local) {
+        toAdd.push(disease);
+        updatedCount++;
+      } else if ((disease.catalogVersion || 1) > (local.catalogVersion || 0)) {
+        toUpdate.push({ id: local.id!, data: disease });
+        updatedCount++;
+      }
+    }
+
+    if (toAdd.length > 0) {
+      await db.diseases.bulkAdd(toAdd);
+    }
+    if (toUpdate.length > 0) {
+      await Promise.all(toUpdate.map(item => db.diseases.update(item.id, item.data)));
+    }
+
+    console.log(`[SyncEngine] Disease catalog sync complete. Added/Updated ${updatedCount} diseases.`);
+    return { success: true, updated: updatedCount };
+  } catch (err) {
+    console.error('[SyncEngine] Disease catalog sync failed:', err);
+    return {
+      success: false,
+      updated: 0,
+      error: err instanceof Error ? err.message : 'Unknown error during catalog sync'
     };
   }
 }

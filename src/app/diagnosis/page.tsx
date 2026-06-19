@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
@@ -39,6 +39,11 @@ export default function SymptomInputPage() {
   const [error, setError] = useState('');
   const [lang, setLang] = useState<Language>('en');
 
+  // Speech Recognition States
+  const [isListening, setIsListening] = useState(false);
+  const [speechError, setSpeechError] = useState('');
+  const recognitionRef = useRef<any>(null);
+
   // Handle language updates real-time
   useEffect(() => {
     setLang(getSavedLanguage());
@@ -50,6 +55,86 @@ export default function SymptomInputPage() {
       window.removeEventListener('languageChange', handleLangChange);
     };
   }, []);
+
+  // Initialize Speech Recognition Client-side
+  useEffect(() => {
+    let recognition: any = null;
+    if (typeof window !== 'undefined') {
+      try {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (SpeechRecognition) {
+          recognition = new SpeechRecognition();
+          recognition.continuous = false;
+          recognition.interimResults = false;
+          
+          recognition.onstart = () => {
+            setIsListening(true);
+            setSpeechError('');
+          };
+        
+          recognition.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            if (transcript) {
+              setDescription(prev => prev ? `${prev} ${transcript}` : transcript);
+            }
+          };
+          
+          recognition.onerror = (event: any) => {
+            console.error('[SpeechRecognition] Error:', event.error);
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+              setSpeechError(translate('micErrorPermission', lang));
+            } else if (event.error !== 'no-speech') {
+              setSpeechError(event.error);
+            }
+            setIsListening(false);
+          };
+          
+          recognition.onend = () => {
+            setIsListening(false);
+          };
+          
+          recognitionRef.current = recognition;
+        }
+      } catch (e) {
+        console.warn("Speech recognition init failed:", e);
+      }
+    }
+    
+    return () => {
+      if (recognition) {
+        try {
+          recognition.stop();
+        } catch {}
+      }
+    };
+  }, [lang]);
+
+  function toggleListening() {
+    if (!recognitionRef.current) {
+      setSpeechError(translate('micErrorUnsupported', lang));
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      setSpeechError('');
+      const langCodeMap: Record<Language, string> = {
+        en: 'en-IN',
+        hi: 'hi-IN',
+        mr: 'mr-IN'
+      };
+      recognitionRef.current.lang = langCodeMap[lang];
+      
+      try {
+        recognitionRef.current.start();
+      } catch (err) {
+        console.error('Failed to start speech recognition:', err);
+        setSpeechError('Failed to start microphone.');
+        setIsListening(false);
+      }
+    }
+  }
 
   useEffect(() => {
     if (!getSession()) { router.push('/auth'); }
@@ -193,13 +278,36 @@ export default function SymptomInputPage() {
         <form onSubmit={handleSubmit}>
           {/* Description */}
           <div className={styles.formGroup}>
-            <label className={styles.label}>{translate('describeSymptom', lang)}</label>
+            <div className={styles.labelRow}>
+              <label className={styles.label}>{translate('describeSymptom', lang)}</label>
+              <button
+                type="button"
+                className={`${styles.micBtn} ${isListening ? styles.micBtnActive : ''}`}
+                onClick={toggleListening}
+                title={isListening ? translate('stopVoice', lang) : translate('startVoice', lang)}
+                aria-label={isListening ? translate('stopVoice', lang) : translate('startVoice', lang)}
+              >
+                <span className={`${styles.micIcon} ${isListening ? styles.micIconActive : ''}`}>🎙️</span>
+                <span>{isListening ? translate('stopVoice', lang) : translate('startVoice', lang)}</span>
+              </button>
+            </div>
             <textarea
               className={styles.textarea}
               placeholder={translate('symptomPlaceholder', lang)}
               value={description}
               onChange={e => setDescription(e.target.value)}
             />
+            {isListening && (
+              <div className={styles.listeningStatus}>
+                <span className={styles.listeningSpinner} />
+                <span>{translate('listeningState', lang)}</span>
+              </div>
+            )}
+            {speechError && (
+              <div className={styles.speechErrorMsg}>
+                ⚠️ {speechError}
+              </div>
+            )}
           </div>
 
           {/* Severity */}

@@ -8,11 +8,16 @@ import { db } from './db';
 
 // Hash a password using SHA-256
 export async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } else {
+    // Fallback for non-secure contexts (e.g., local network HTTP testing)
+    return btoa(password).split('').reverse().join('');
+  }
 }
 
 // Register a new user locally
@@ -64,21 +69,29 @@ export async function loginUser(name: string, password: string): Promise<{ succe
 
 // Save session to localStorage
 export function saveSession(userId: number, userName: string) {
-  localStorage.setItem('medireach_session', JSON.stringify({ userId, userName, loggedInAt: Date.now() }));
+  try {
+    localStorage.setItem('medireach_session', JSON.stringify({ userId, userName, loggedInAt: Date.now() }));
+  } catch (e) {
+    console.warn("localStorage not available:", e);
+  }
 }
 
 // Get current session
 export function getSession(): { userId: number; userName: string; loggedInAt: number } | null {
-  const raw = localStorage.getItem('medireach_session');
-  if (!raw) return null;
   try {
+    const raw = localStorage.getItem('medireach_session');
+    if (!raw) return null;
     return JSON.parse(raw);
-  } catch {
+  } catch (e) {
     return null;
   }
 }
 
 // Logout
 export function clearSession() {
-  localStorage.removeItem('medireach_session');
+  try {
+    localStorage.removeItem('medireach_session');
+  } catch (e) {
+    console.warn("localStorage not available:", e);
+  }
 }

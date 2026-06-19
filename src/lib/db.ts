@@ -12,6 +12,7 @@ export interface UserProfile {
   allergies: string[];
   chronicConditions: string[];
   pinHash?: string;
+  emergencyContacts?: { name: string; phone: string }[];
 }
 
 export interface SymptomLog {
@@ -47,6 +48,7 @@ export interface Appointment {
   fee: number;
   status: 'upcoming' | 'completed' | 'cancelled';
   notes?: string;
+  symptomLogId?: number;
   reportShared?: boolean;
   synced: boolean;
   createdAt: string;
@@ -63,6 +65,22 @@ export interface AppNotification {
   appointmentId?: number;
 }
 
+export interface DiseaseRecord {
+  id?: number;
+  name: string;
+  keywords: string[];
+  bodyParts: string[];
+  severity: 'Low' | 'Moderate' | 'Severe' | 'Emergency';
+  description: string;
+  homeRemedies: string[];
+  otcMedicines: { name: string; dosage: string; warning?: string }[];
+  specialist: string;
+  specialistReason: string;
+  warningFlags: string[];
+  seekEmergencyIf: string[];
+  catalogVersion?: number; // For tracking OTA updates
+}
+
 export class MediReachDB extends Dexie {
   userProfiles!: Table<UserProfile>;
   symptomLogs!: Table<SymptomLog>;
@@ -70,6 +88,7 @@ export class MediReachDB extends Dexie {
   diagnosisResults!: Table<DiagnosisResult & { id?: number }>;
   appointments!: Table<Appointment>;
   notifications!: Table<AppNotification>;
+  diseases!: Table<DiseaseRecord>;
 
   constructor() {
     super('MediReachDB');
@@ -96,7 +115,19 @@ export class MediReachDB extends Dexie {
       appointments: '++id, userId, doctorId, status, synced, createdAt',
       notifications: '++id, userId, type, read, scheduledAt'
     });
+
+    // Phase 7: Scalable Offline Disease Catalog (500+ diseases)
+    this.version(4).stores({
+      userProfiles: '++id, name',
+      symptomLogs: '++id, userId, timestamp, severity, synced',
+      medicalReports: '++id, userId, timestamp, synced',
+      diagnosisResults: '++id, symptomLogId, userId, timestamp',
+      appointments: '++id, userId, doctorId, status, synced, createdAt',
+      notifications: '++id, userId, type, read, scheduledAt',
+      diseases: '++id, name, *keywords, *bodyParts, severity, catalogVersion'
+    });
   }
 }
 
 export const db = new MediReachDB();
+

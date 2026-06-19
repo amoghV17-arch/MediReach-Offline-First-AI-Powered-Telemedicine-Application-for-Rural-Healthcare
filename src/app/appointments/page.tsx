@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
-import { db, type Appointment } from '@/lib/db';
+import { db, type Appointment, type SymptomLog } from '@/lib/db';
 import { DOCTORS, SPECIALTIES, CITIES, type Doctor } from '@/lib/doctors';
 import { scheduleAppointmentReminder } from '@/lib/syncEngine';
 import { getSavedLanguage, saveLanguage, translate, type Language } from '@/lib/translations';
+import type { DiagnosisResult } from '@/lib/diagnosisEngine';
 import styles from './appointments.module.css';
 
 type Tab = 'find' | 'book' | 'mine';
@@ -196,6 +197,12 @@ export default function AppointmentsPage() {
   const [notes, setNotes] = useState('');
   const [booking, setBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState<{ doctorName: string; slot: string; meetingLink?: string } | null>(null);
+  const [latestSymptomLog, setLatestSymptomLog] = useState<SymptomLog | null>(null);
+  const [latestDiagnosisResult, setLatestDiagnosisResult] = useState<DiagnosisResult | null>(null);
+  const [shouldAttachSymptoms, setShouldAttachSymptoms] = useState(true);
+
+  // Profile Detail Drawer state
+  const [activeProfileDoctor, setActiveProfileDoctor] = useState<Doctor | null>(null);
 
   // My Appointments state
   const [myAppointments, setMyAppointments] = useState<Appointment[]>([]);
@@ -273,11 +280,50 @@ export default function AppointmentsPage() {
     if (activeTab === 'mine') loadMyAppointments();
   }, [activeTab, loadMyAppointments]);
 
+  // Fetch latest symptom log & AI diagnosis when doctor selected
+  useEffect(() => {
+    if (selectedDoctor) {
+      const session = getSession();
+      if (session) {
+        db.symptomLogs
+          .where('userId')
+          .equals(session.userId)
+          .reverse()
+          .sortBy('timestamp')
+          .then(logs => {
+            if (logs && logs.length > 0) {
+              const latestLog = logs[0];
+              setLatestSymptomLog(latestLog);
+              if (latestLog.id) {
+                db.diagnosisResults
+                  .where('symptomLogId')
+                  .equals(latestLog.id)
+                  .first()
+                  .then(res => {
+                    setLatestDiagnosisResult(res ?? null);
+                  });
+              }
+            } else {
+              setLatestSymptomLog(null);
+              setLatestDiagnosisResult(null);
+            }
+          })
+          .catch(err => {
+            console.error('[AppointmentsPage] Error fetching latest symptoms:', err);
+          });
+      }
+    } else {
+      setLatestSymptomLog(null);
+      setLatestDiagnosisResult(null);
+    }
+  }, [selectedDoctor]);
+
   function handleSelectDoctor(doc: Doctor) {
     setSelectedDoctor(doc);
     setSelectedSlot('');
     setNotes('');
     setBookingSuccess(null);
+    setShouldAttachSymptoms(true);
     setActiveTab('book');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -299,6 +345,7 @@ export default function AppointmentsPage() {
         fee: selectedDoctor.fee,
         status: 'upcoming',
         notes,
+        symptomLogId: (shouldAttachSymptoms && latestSymptomLog?.id) ? latestSymptomLog.id : undefined,
         reportShared: false,
         synced: false,
         createdAt: new Date().toISOString(),
@@ -513,8 +560,16 @@ export default function AppointmentsPage() {
                         <span className={styles.stars}>{'★'.repeat(Math.round(doc.rating))}{'☆'.repeat(5 - Math.round(doc.rating))}</span>
                         <span className={styles.ratingNum}>{doc.rating} ({doc.reviewCount})</span>
                       </div>
-                      <div className={styles.feeRow}>
+                      <div className={styles.feeRow} style={{ gap: '8px' }}>
                         <span className={styles.fee}>₹{doc.fee}</span>
+                        <button
+                          type="button"
+                          className={styles.viewProfileBtn}
+                          onClick={() => setActiveProfileDoctor(doc)}
+                          aria-label={`View profile of ${doc.name}`}
+                        >
+                          ℹ️ {lang === 'mr' ? 'माहिती' : lang === 'hi' ? 'जानकारी' : 'Profile'}
+                        </button>
                         <button
                           id={`book-${doc.id}`}
                           className={styles.bookBtn}
@@ -586,25 +641,143 @@ export default function AppointmentsPage() {
                   <div className={styles.feeBadge}>₹{selectedDoctor.fee}</div>
                 </div>
 
+                {/* Auto-attached Symptom Analysis */}
+                {latestSymptomLog && (
+                  <div className={styles.attachedSymptomCard}>
+                    <div className={styles.attachedHeader}>
+                      <h4 className={styles.attachedTitle}>
+                        🩺 {tLocal('attachedSymptomTitle')}
+                      </h4>
+                      <span className={styles.attachedBadge}>
+                        {translate(latestSymptomLog.severity, lang)}
+                      </span>
+                    </div>
+                    <p className={styles.attachedText}>
+                      {latestSymptomLog.description}
+                    </p>
+                    <div className={styles.attachedMetaGrid}>
+                      <span className={styles.attachedMetaChip}>
+                        ⏱️ {latestSymptomLog.duration}
+                      </span>
+                      {latestSymptomLog.bodyParts.map(part => (
+                        <span key={part} className={styles.attachedMetaChip}>
+                          📍 {translate(part, lang)}
+                        </span>
+                      ))}
+                      {latestDiagnosisResult && latestDiagnosisResult.possibleConditions && latestDiagnosisResult.possibleConditions.length > 0 && (
+                        <span className={styles.attachedMetaChip} style={{ borderColor: 'rgba(59, 130, 246, 0.4)', color: '#60a5fa' }}>
+                          🧠 AI: {latestDiagnosisResult.possibleConditions[0].name}
+                        </span>
+                      )}
+                    </div>
+                    <p className={styles.attachedShareText} style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 12px 0' }}>
+                      {tLocal('attachedSymptomDesc')}
+                    </p>
+                    <div className={styles.attachedShareRow}>
+                      <span className={styles.attachedShareText} style={{ fontWeight: '600', color: 'white' }}>
+                        {lang === 'mr' ? 'आरोग्य माहिती डॉक्टरांसोबत शेअर करा' : lang === 'hi' ? 'स्वास्थ्य जानकारी डॉक्टर के साथ साझा करें' : 'Share health summary with doctor'}
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={shouldAttachSymptoms}
+                        onChange={e => setShouldAttachSymptoms(e.target.checked)}
+                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                        aria-label="Share health summary with doctor"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Slot picker */}
                 <div className={styles.slotSection}>
                   <h3 className={styles.slotTitle}>{tLocal('pickSlotTitle')}</h3>
-                  <div className={styles.slotGrid}>
-                    {selectedDoctor.availableSlots.map(slot => (
-                      <button
-                        key={slot}
-                        className={`${styles.slotBtn} ${selectedSlot === slot ? styles.slotSelected : ''}`}
-                        onClick={() => setSelectedSlot(slot)}
-                      >
-                        <span className={styles.slotDay}>
-                          {new Date(slot).toLocaleDateString(lang === 'en' ? 'en-IN' : lang === 'hi' ? 'hi-IN' : 'mr-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-                        </span>
-                        <span className={styles.slotTime}>
-                          {new Date(slot).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                  
+                  {/* Morning Slots */}
+                  {(() => {
+                    const morningSlots = selectedDoctor.availableSlots.filter(s => new Date(s).getHours() < 12);
+                    if (morningSlots.length === 0) return null;
+                    return (
+                      <div className={styles.periodSection}>
+                        <div className={styles.periodHeader}>🌅 {tLocal('morning')}</div>
+                        <div className={styles.periodGrid}>
+                          {morningSlots.map(slot => (
+                            <button
+                              key={slot}
+                              type="button"
+                              className={`${styles.slotBtn} ${selectedSlot === slot ? styles.slotSelected : ''}`}
+                              onClick={() => setSelectedSlot(slot)}
+                            >
+                              <span className={styles.slotDay}>
+                                {new Date(slot).toLocaleDateString(lang === 'en' ? 'en-IN' : lang === 'hi' ? 'hi-IN' : 'mr-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                              </span>
+                              <span className={styles.slotTime}>
+                                {new Date(slot).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Afternoon Slots */}
+                  {(() => {
+                    const afternoonSlots = selectedDoctor.availableSlots.filter(s => {
+                      const hr = new Date(s).getHours();
+                      return hr >= 12 && hr < 17;
+                    });
+                    if (afternoonSlots.length === 0) return null;
+                    return (
+                      <div className={styles.periodSection}>
+                        <div className={styles.periodHeader}>☀️ {tLocal('afternoon')}</div>
+                        <div className={styles.periodGrid}>
+                          {afternoonSlots.map(slot => (
+                            <button
+                              key={slot}
+                              type="button"
+                              className={`${styles.slotBtn} ${selectedSlot === slot ? styles.slotSelected : ''}`}
+                              onClick={() => setSelectedSlot(slot)}
+                            >
+                              <span className={styles.slotDay}>
+                                {new Date(slot).toLocaleDateString(lang === 'en' ? 'en-IN' : lang === 'hi' ? 'hi-IN' : 'mr-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                              </span>
+                              <span className={styles.slotTime}>
+                                {new Date(slot).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Evening Slots */}
+                  {(() => {
+                    const eveningSlots = selectedDoctor.availableSlots.filter(s => new Date(s).getHours() >= 17);
+                    if (eveningSlots.length === 0) return null;
+                    return (
+                      <div className={styles.periodSection}>
+                        <div className={styles.periodHeader}>🌙 {tLocal('evening')}</div>
+                        <div className={styles.periodGrid}>
+                          {eveningSlots.map(slot => (
+                            <button
+                              key={slot}
+                              type="button"
+                              className={`${styles.slotBtn} ${selectedSlot === slot ? styles.slotSelected : ''}`}
+                              onClick={() => setSelectedSlot(slot)}
+                            >
+                              <span className={styles.slotDay}>
+                                {new Date(slot).toLocaleDateString(lang === 'en' ? 'en-IN' : lang === 'hi' ? 'hi-IN' : 'mr-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                              </span>
+                              <span className={styles.slotTime}>
+                                {new Date(slot).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Notes */}
@@ -627,7 +800,7 @@ export default function AppointmentsPage() {
                 >
                   {booking ? tLocal('confirmingText') : selectedSlot ? `✅ ${translate('confirm', lang)} — ${formatSlot(selectedSlot)}` : tLocal('pickSlotAbove')}
                 </button>
-                <button className={styles.changeDoctorBtn} onClick={() => { setSelectedDoctor(null); setActiveTab('find'); }}>
+                <button className={styles.changeDoctorBtn} onClick={() => { setSelectedDoctor(null); setSelectedSlot(''); setNotes(''); setActiveTab('find'); }}>
                   {tLocal('chooseDifferentDoctor')}
                 </button>
               </div>
@@ -696,6 +869,93 @@ export default function AppointmentsPage() {
           </div>
         )}
       </main>
+
+      {/* ─── DOCTOR PROFILE DRAWER ─── */}
+      {activeProfileDoctor && (
+        <>
+          <div className={styles.profileDrawerOverlay} onClick={() => setActiveProfileDoctor(null)} />
+          <div className={styles.profileDrawer}>
+            <div className={styles.drawerHeader}>
+              <h3 className={styles.drawerTitle}>{tLocal('profileDrawerBio')}</h3>
+              <button className={styles.drawerClose} onClick={() => setActiveProfileDoctor(null)}>✕</button>
+            </div>
+            <div className={styles.drawerBody}>
+              <div className={styles.drawerProfileInfo}>
+                <div className={styles.drawerAvatar}>{activeProfileDoctor.avatar}</div>
+                <div className={styles.drawerMeta}>
+                  <h4 className={styles.drawerName}>{activeProfileDoctor.name}</h4>
+                  <div className={styles.drawerSpec}>{specTranslations[activeProfileDoctor.specialty]?.[lang] || activeProfileDoctor.specialty}</div>
+                  <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px' }}>
+                    🌟 {activeProfileDoctor.rating} ({activeProfileDoctor.reviewCount} {lang === 'mr' ? 'पुनरावलोकने' : lang === 'hi' ? 'समीक्षाएं' : 'reviews'})
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.drawerBioCard}>
+                <div className={styles.drawerBioTitle}>{lang === 'mr' ? 'अनुभव आणि शिक्षण' : lang === 'hi' ? 'अनुभव और योग्यता' : 'Qualifications & Experience'}</div>
+                <p className={styles.drawerBioText} style={{ marginBottom: '12px' }}>
+                  🎓 {activeProfileDoctor.qualifications}<br />
+                  ⏱️ {activeProfileDoctor.experience} {tLocal('experienceText') || (lang === 'mr' ? 'वर्षांचा अनुभव' : lang === 'hi' ? 'वर्षों का अनुभव' : 'years experience')}
+                </p>
+                <div className={styles.drawerBioTitle}>{lang === 'mr' ? 'भाषा' : lang === 'hi' ? 'भाषाएँ' : 'Languages'}</div>
+                <p className={styles.drawerBioText}>
+                  🗣️ {activeProfileDoctor.languages.join(', ')}
+                </p>
+              </div>
+
+              <div className={styles.drawerBioCard}>
+                <div className={styles.drawerBioTitle}>{lang === 'mr' ? 'डॉक्टरांबद्दल' : lang === 'hi' ? 'चिकित्सक के बारे में' : 'About Doctor'}</div>
+                <p className={styles.drawerBioText}>
+                  {activeProfileDoctor.about}
+                </p>
+              </div>
+
+              <div className={styles.drawerBioCard}>
+                <div className={styles.drawerBioTitle}>{lang === 'mr' ? 'रुग्णालय आणि पत्ता' : lang === 'hi' ? 'अस्पताल और पता' : 'Hospital & Location'}</div>
+                <p className={styles.drawerBioText}>
+                  🏥 {activeProfileDoctor.hospital}<br />
+                  📍 {cityTranslations[activeProfileDoctor.city]?.[lang] || activeProfileDoctor.city}, {activeProfileDoctor.state}
+                </p>
+              </div>
+
+              <div>
+                <div className={styles.drawerBioTitle} style={{ marginBottom: '12px' }}>💬 {lang === 'mr' ? 'रुग्णांचे अभिप्राय' : lang === 'hi' ? 'मरीजों की समीक्षाएं' : 'Patient Reviews'}</div>
+                <div className={styles.drawerReviewCard}>
+                  <div className={styles.drawerReviewAuthor}>
+                    <span>Ramesh K.</span>
+                    <span>⭐⭐⭐⭐⭐</span>
+                  </div>
+                  <p className={styles.drawerReviewText}>
+                    "{lang === 'mr' ? 'खूप चांगले डॉक्टर आहेत, शांतपणे ऐकून घेतात.' : lang === 'hi' ? 'बहुत अच्छे डॉक्टर हैं, ध्यान से सुनते हैं।' : 'Very professional doctor, patient listener.'}"
+                  </p>
+                </div>
+                <div className={styles.drawerReviewCard}>
+                  <div className={styles.drawerReviewAuthor}>
+                    <span>Sunita D.</span>
+                    <span>⭐⭐⭐⭐⭐</span>
+                  </div>
+                  <p className={styles.drawerReviewText}>
+                    "{lang === 'mr' ? 'औषधांनी त्वरित फरक पडला.' : lang === 'hi' ? 'दवाइयों से बहुत जल्दी आराम मिला।' : 'Medicines worked fast. Great advice.'}"
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <button 
+                type="button" 
+                className={styles.bookBtn} 
+                style={{ width: '100%', padding: '14px' }}
+                onClick={() => {
+                  handleSelectDoctor(activeProfileDoctor);
+                  setActiveProfileDoctor(null);
+                }}
+              >
+                {tLocal('bookNow')} — ₹{activeProfileDoctor.fee}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
