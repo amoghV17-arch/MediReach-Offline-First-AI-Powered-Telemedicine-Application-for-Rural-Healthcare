@@ -84,9 +84,9 @@ export const translations: TranslationDict = {
     mr: "सीमांशिवाय"
   },
   heroSub: {
-    en: "The world's first truly offline-first telemedicine platform. Get instant AI diagnosis and medical support, even without internet.",
-    hi: "दुनिया का पहला पूरी तरह से offline-first टेलीमेडिसिन प्लेटफॉर्म। इंटरनेट के बिना भी तुरंत एआई निदान और चिकित्सा सहायता प्राप्त करें।",
-    mr: "जगातील पहिले खरोखर ऑफलाइन-फर्स्ट टेलिमेडिसिन प्लॅटफॉर्म. इंटरनेटशिवाय त्वरित एआय निदान आणि वैद्यकीय मदत मिळवा."
+    en: "An advanced offline-first telemedicine platform designed for rural healthcare. Get instant AI diagnosis and medical support, even without internet.",
+    hi: "ग्रामीण स्वास्थ्य सेवा के लिए डिज़ाइन किया गया एक उन्नत offline-first टेलीमेडिसिन प्लेटफ़ॉर्म। इंटरनेट के बिना भी तुरंत एआई निदान और चिकित्सा सहायता प्राप्त करें।",
+    mr: "ग्रामीण आरोग्यासाठी डिझाइन केलेले एक प्रगत ऑफलाइन-फर्स्ट टेलिमेडिसिन प्लॅटफॉर्म. इंटरनेटशिवाय त्वरित एआय निदान आणि वैद्यकीय मदत मिळवा."
   },
   getStarted: {
     en: "Get Started Free",
