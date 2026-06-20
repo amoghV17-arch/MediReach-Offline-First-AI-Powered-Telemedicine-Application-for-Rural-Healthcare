@@ -637,11 +637,14 @@ export async function analyzeSymptoms(
   // Build a set of words from the user description for fast lookup
   const descWords = new Set(lowerDesc.split(/[\s,;.!?()]+/).filter(w => w.length > 1));
 
-  // Generic keywords that appear in many diseases — worth less
+  // Generic keywords that appear in many diseases — worth less and should NEVER trigger name bonus
   const GENERIC_KEYWORDS = new Set([
     'fever', 'pain', 'headache', 'nausea', 'vomiting', 'fatigue',
     'weakness', 'rash', 'aches', 'muscle', 'joint', 'cough',
-    'swelling', 'diarrhea', 'chills', 'sore',
+    'swelling', 'diarrhea', 'chills', 'sore', 'severe', 'mild',
+    'acute', 'chronic', 'high', 'low', 'viral', 'bacterial',
+    'syndrome', 'disease', 'infection', 'type', 'early', 'late',
+    'blood', 'pressure', 'heart', 'attack'
   ]);
 
   const scored = entries.map(entry => {
