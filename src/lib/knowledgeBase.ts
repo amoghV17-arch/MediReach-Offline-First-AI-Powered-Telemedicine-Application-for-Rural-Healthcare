@@ -622,7 +622,10 @@ export async function analyzeSymptoms(
   try {
     const dbCount = await db.diseases.count();
     if (dbCount > 0) {
-      entries = await db.diseases.toArray();
+      const dbEntries = await db.diseases.toArray();
+      // Merge: Keep all KNOWLEDGE_BASE core diseases, and add any from DB that don't share the same name
+      const existingNames = new Set(KNOWLEDGE_BASE.map(e => e.name.toLowerCase()));
+      entries = [...KNOWLEDGE_BASE, ...dbEntries.filter(e => !existingNames.has(e.name.toLowerCase()))];
     } else {
       entries = KNOWLEDGE_BASE;
     }
