@@ -121,7 +121,7 @@ export async function runOfflineDiagnosis(
   // Merge remedies from top 2 matches
   const allRemedies = [...top.homeRemedies];
   if (matches[1]) {
-    matches[1].homeRemedies.slice(0, 2).forEach(r => {
+    matches[1].homeRemedies.slice(0, 2).forEach((r: string) => {
       if (!allRemedies.includes(r)) allRemedies.push(r);
     });
   }
