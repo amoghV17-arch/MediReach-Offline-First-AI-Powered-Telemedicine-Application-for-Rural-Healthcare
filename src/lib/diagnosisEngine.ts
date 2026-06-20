@@ -3,6 +3,7 @@
  * Orchestrates AI analysis — uses Claude API when online, falls back to the
  * offline knowledge base when there's no internet connection.
  */
+import { analyzeSymptoms, checkForEscalation } from './knowledgeBase';
 
 export interface DiagnosisResult {
   id?: number;
@@ -58,8 +59,7 @@ export async function runOfflineDiagnosis(
   symptomLogId: number,
   images?: ClientImage[]
 ): Promise<DiagnosisResult> {
-  // Dynamically import to avoid bundling issues
-  const { analyzeSymptoms, checkForEscalation } = await import('./knowledgeBase');
+  // Knowledge base is statically imported
 
   let matches: any[];
   try {

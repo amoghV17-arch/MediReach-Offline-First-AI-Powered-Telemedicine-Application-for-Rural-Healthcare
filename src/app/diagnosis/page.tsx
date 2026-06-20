@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { runDiagnosis } from '@/lib/diagnosisEngine';
 import { getSavedLanguage, translate, type Language } from '@/lib/translations';
 import styles from './diagnosis.module.css';
 
@@ -222,8 +223,6 @@ export default function SymptomInputPage() {
         })
       );
 
-      // Run AI diagnosis engine (online → offline fallback)
-      const { runDiagnosis } = await import('@/lib/diagnosisEngine');
       const result = await runDiagnosis(
         description,
         selectedParts,

@@ -3,6 +3,7 @@
  * A symptom-disease-remedy knowledge graph used when the device is offline.
  * NOTE: This is for informational/educational use only. Always consult a doctor.
  */
+import { db } from './db';
 
 export interface DiseaseEntry {
   name: string;
@@ -614,7 +615,6 @@ export async function analyzeSymptoms(
   bodyParts: string[],
   userSeverity: string
 ): Promise<DiseaseEntry[]> {
-  const { db } = await import('./db');
   const lowerDesc = description.toLowerCase();
 
   // Try IndexedDB first (500+ diseases), fall back to static array
