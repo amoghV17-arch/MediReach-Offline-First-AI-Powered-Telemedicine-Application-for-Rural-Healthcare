@@ -644,7 +644,7 @@ export async function analyzeSymptoms(
     'swelling', 'diarrhea', 'chills', 'sore', 'severe', 'mild',
     'acute', 'chronic', 'high', 'low', 'viral', 'bacterial',
     'syndrome', 'disease', 'infection', 'type', 'early', 'late',
-    'blood', 'pressure', 'heart', 'attack'
+    'blood', 'pressure', 'heart', 'attack', 'body', 'head', 'chest', 'back', 'stomach'
   ]);
 
   const scored = entries.map(entry => {
