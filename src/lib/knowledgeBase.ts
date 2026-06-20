@@ -647,24 +647,35 @@ export async function analyzeSymptoms(
   const scored = entries.map(entry => {
     let score = 0;
 
-    // 1. DISEASE NAME MATCH — massive bonus if user explicitly mentions the disease name
+    // 1. DISEASE NAME MATCH — massive bonus ONLY if they type the actual unique disease name
     const nameLower = entry.name.toLowerCase();
-    const nameWords = nameLower.split(/[\s/()+]+/).filter(w => w.length > 2);
-    for (const nw of nameWords) {
-      if (lowerDesc.includes(nw)) {
-        score += 25; // Huge bonus — user literally named the disease
+    
+    // Exact full name match (e.g. "dengue fever")
+    if (lowerDesc.includes(nameLower)) {
+      score += 25;
+    } else {
+      // Primary identifier match (e.g. "dengue" out of "Dengue Fever")
+      const firstWord = nameLower.split(/[\s/()]+/)[0];
+      if (firstWord && firstWord.length > 3 && !GENERIC_KEYWORDS.has(firstWord)) {
+        // Use a word boundary check so "typho" doesn't match "typhoid"
+        const boundaryRegex = new RegExp(`\\b${firstWord}\\b`, 'i');
+        if (boundaryRegex.test(lowerDesc)) {
+          score += 15;
+        }
       }
     }
 
     // 2. KEYWORD MATCHING — specific keywords worth more than generic ones
     let keywordHits = 0;
     for (const kw of entry.keywords) {
-      if (lowerDesc.includes(kw)) {
+      // Use word boundaries to prevent partial matches like "ache" in "headache"
+      const kwRegex = new RegExp(`\\b${kw}\\b`, 'i');
+      if (kwRegex.test(lowerDesc)) {
         keywordHits++;
         if (GENERIC_KEYWORDS.has(kw)) {
           score += 2; // Generic symptom match
         } else {
-          score += 5; // Specific/unique symptom match (e.g. "dengue", "breakbone", "behind eyes")
+          score += 5; // Specific/unique symptom match
         }
       }
     }
@@ -680,9 +691,10 @@ export async function analyzeSymptoms(
       if (entry.bodyParts.includes(part)) score += 2;
     }
 
-    // 5. WARNING FLAG MATCH — only add moderate boost (not overwhelming)
+    // 5. WARNING FLAG MATCH — only add moderate boost
     for (const flag of entry.warningFlags) {
-      if (lowerDesc.includes(flag.toLowerCase())) score += 3;
+      const flagRegex = new RegExp(`\\b${flag.toLowerCase()}\\b`, 'i');
+      if (flagRegex.test(lowerDesc)) score += 3;
     }
 
     return { entry, score };
