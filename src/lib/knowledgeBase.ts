@@ -317,7 +317,7 @@ export const KNOWLEDGE_BASE: DiseaseEntry[] = [
   },
   {
     name: 'Dengue Fever',
-    keywords: ['dengue', 'fever', 'headache', 'eyes', 'joint', 'muscle', 'aches', 'pain', 'rash', 'bone', 'breakbone', 'shivering', 'nausea', 'vomiting'],
+    keywords: ['dengue', 'fever', 'headache', 'eyes', 'behind eyes', 'joint', 'muscle', 'aches', 'pain', 'rash', 'bone', 'breakbone', 'shivering', 'nausea', 'vomiting', 'platelet', 'platelets', 'mosquito', 'aedes', 'hemorrhagic', 'bleeding', 'body pain', 'high fever', 'retro-orbital'],
     bodyParts: ['Head', 'Eyes', 'Joints', 'Skin', 'Back'],
     severity: 'Severe',
     description: 'A viral infection transmitted by Aedes mosquitoes. Characterized by sudden high fever, intense pain behind the eyes, joint/muscle pain (breakbone pain), and sometimes a skin rash.',
@@ -634,22 +634,55 @@ export async function analyzeSymptoms(
     entries = KNOWLEDGE_BASE;
   }
 
+  // Build a set of words from the user description for fast lookup
+  const descWords = new Set(lowerDesc.split(/[\s,;.!?()]+/).filter(w => w.length > 1));
+
+  // Generic keywords that appear in many diseases — worth less
+  const GENERIC_KEYWORDS = new Set([
+    'fever', 'pain', 'headache', 'nausea', 'vomiting', 'fatigue',
+    'weakness', 'rash', 'aches', 'muscle', 'joint', 'cough',
+    'swelling', 'diarrhea', 'chills', 'sore',
+  ]);
+
   const scored = entries.map(entry => {
     let score = 0;
 
-    // Keyword match in description
-    for (const kw of entry.keywords) {
-      if (lowerDesc.includes(kw)) score += 3;
+    // 1. DISEASE NAME MATCH — massive bonus if user explicitly mentions the disease name
+    const nameLower = entry.name.toLowerCase();
+    const nameWords = nameLower.split(/[\s/()+]+/).filter(w => w.length > 2);
+    for (const nw of nameWords) {
+      if (lowerDesc.includes(nw)) {
+        score += 25; // Huge bonus — user literally named the disease
+      }
     }
 
-    // Body part match
+    // 2. KEYWORD MATCHING — specific keywords worth more than generic ones
+    let keywordHits = 0;
+    for (const kw of entry.keywords) {
+      if (lowerDesc.includes(kw)) {
+        keywordHits++;
+        if (GENERIC_KEYWORDS.has(kw)) {
+          score += 2; // Generic symptom match
+        } else {
+          score += 5; // Specific/unique symptom match (e.g. "dengue", "breakbone", "behind eyes")
+        }
+      }
+    }
+
+    // 3. KEYWORD HIT RATIO — reward diseases where a higher % of keywords matched
+    if (entry.keywords.length > 0 && keywordHits > 0) {
+      const ratio = keywordHits / entry.keywords.length;
+      score += Math.round(ratio * 10); // Up to +10 bonus for high match %
+    }
+
+    // 4. BODY PART MATCH
     for (const part of bodyParts) {
       if (entry.bodyParts.includes(part)) score += 2;
     }
 
-    // Boost if warning flags appear in description
+    // 5. WARNING FLAG MATCH — only add moderate boost (not overwhelming)
     for (const flag of entry.warningFlags) {
-      if (lowerDesc.includes(flag)) score += 5;
+      if (lowerDesc.includes(flag.toLowerCase())) score += 3;
     }
 
     return { entry, score };
