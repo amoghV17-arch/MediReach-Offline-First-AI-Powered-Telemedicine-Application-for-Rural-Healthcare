@@ -61,7 +61,7 @@ export async function runOfflineDiagnosis(
   // Dynamically import to avoid bundling issues
   const { analyzeSymptoms, checkForEscalation } = await import('./knowledgeBase');
 
-  let matches;
+  let matches: any[];
   try {
     matches = await analyzeSymptoms(description, bodyParts, severity);
   } catch (err) {
