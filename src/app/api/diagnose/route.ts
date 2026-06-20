@@ -16,62 +16,8 @@ export async function POST(req: NextRequest) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      // Mock / Simulated AI response when no API Key is configured
-      const descLower = description.toLowerCase();
-      const isEye = descLower.includes('eye') || descLower.includes('conjunctiv') || bodyParts.includes('Eyes');
-      const isSkin = descLower.includes('rash') || descLower.includes('skin') || descLower.includes('itch') || bodyParts.includes('Skin');
-      const isChest = descLower.includes('cough') || descLower.includes('breath') || descLower.includes('chest') || bodyParts.includes('Chest');
-
-      let summary = "Based on the symptom profile, this is consistent with a mild localized irritation or infection.";
-      let conditionName = "Localized Irritation";
-      let conditionDesc = "A mild inflammatory response to a localized infection or irritant.";
-      let imageAnalysis = "Clinical Visual Assessment: Analyzed the uploaded image. The image shows localized tissue redness and mild swelling, matching the reported symptoms.";
-
-      if (isEye) {
-        summary = "Based on the symptoms, this is highly consistent with Conjunctivitis (Pink Eye), showing signs of conjunctival redness and irritation.";
-        conditionName = "Conjunctivitis (Pink Eye)";
-        conditionDesc = "Inflammation of the thin clear membrane covering the white part of the eye, which can be viral, bacterial, or allergic.";
-        imageAnalysis = "Clinical Visual Assessment: The uploaded image shows conjunctival injection (redness of the white part of the eye) with mild eyelid swelling and clear-to-mucus discharge, typical of acute conjunctivitis.";
-      } else if (isSkin) {
-        summary = "Based on the symptoms, this is consistent with a localized Dermatitis or Fungal Skin Infection (like Ringworm).";
-        conditionName = "Fungal Skin Infection (Ringworm)";
-        conditionDesc = "A common fungal skin infection characterized by a red, itchy, circular rash with raised borders.";
-        imageAnalysis = "Clinical Visual Assessment: The skin image reveals circular erythematous lesions with slightly raised, scaly borders, typical of ringworm (Tinea corporis).";
-      } else if (isChest) {
-        summary = "Based on the symptoms, this is consistent with a respiratory tract infection or Bronchitis.";
-        conditionName = "Acute Bronchitis";
-        conditionDesc = "Inflammation of the bronchial tubes in the lungs, usually caused by a viral infection.";
-        imageAnalysis = "Clinical Visual Assessment: The uploaded chest X-ray image reveals mild peribronchial thickening and lung congestion, with no signs of active lobar consolidation.";
-      }
-
-      return NextResponse.json({
-        summary,
-        severity: severity || "Low",
-        severityReason: "Based on the reported symptom timeline and lack of acute emergency markers.",
-        possibleConditions: [
-          { name: conditionName, description: conditionDesc, matchConfidence: "High" },
-          { name: "General Viral Syndrome", description: "A systemic response to a viral infection.", matchConfidence: "Medium" }
-        ],
-        homeRemedies: [
-          "Ensure adequate rest and plenty of oral hydration.",
-          "Apply warm or cool compresses to the affected area to reduce discomfort.",
-          "Keep the affected area clean and dry.",
-          "Avoid direct contact with allergens or irritants."
-        ],
-        otcMedicines: [
-          { name: "Paracetamol / Crocin (for pain/fever)", dosage: "500mg every 6 hours as needed", warning: "Do not exceed 4g in 24 hours. Avoid if you have liver issues." },
-          { name: "Antihistamine (for allergies/itching)", dosage: "1 tablet daily at bedtime", warning: "May cause drowsiness. Avoid driving or operating machinery." }
-        ],
-        specialistRecommended: isEye ? "Ophthalmologist" : isSkin ? "Dermatologist" : isChest ? "Pulmonologist" : "General Physician",
-        specialistReason: "For physical examination and precise treatment if symptoms persist.",
-        seekEmergencyIf: [
-          "Difficulty breathing or persistent chest pressure",
-          "Rapid spreading of symptoms or severe pain",
-          "High fever unresponsive to medication"
-        ],
-        disclaimer: "This is a simulated AI response for demonstration purposes since GEMINI_API_KEY is not configured.",
-        imageAnalysis
-      });
+      console.warn('[MediReach AI] GEMINI_API_KEY is not configured. Falling back to offline diagnosis engine.');
+      return NextResponse.json({ error: 'AI service not configured on server' }, { status: 503 });
     }
 
     const systemPrompt = `You are MediReach AI, an expert medical assistant integrated into an offline-first telemedicine platform serving patients in rural and underserved areas of India. 
